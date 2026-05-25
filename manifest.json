@@ -1,0 +1,19 @@
+﻿{
+  "name": "心情日记",
+  "short_name": "心情日记",
+  "description": "记录每日心情，写下生活点滴",
+  "start_url": "./心情日记.html",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#f5f7fa",
+  "theme_color": "#667eea",
+  "lang": "zh-CN",
+  "icons": [
+    {
+      "src": "icon.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
