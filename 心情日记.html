@@ -1,0 +1,1124 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="心情日记">
+<meta name="theme-color" content="#667eea">
+<meta name="mobile-web-app-capable" content="yes">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" type="image/svg+xml" href="icon.svg">
+<link rel="apple-touch-icon" href="icon.svg">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>心情日记</title>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body {
+  font-family: "Microsoft YaHei", "PingFang SC", "Helvetica Neue", sans-serif;
+  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding: 20px;
+}
+.container {
+  max-width: 700px;
+  width: 100%;
+  margin: 0 auto;
+}
+.header {
+  text-align: center;
+  padding: 24px 0 16px;
+}
+.header h1 { font-size: 28px; color: #2c3e50; letter-spacing: 2px; }
+.header .date-display { font-size: 15px; color: #7f8c8d; margin-top: 6px; }
+
+.card {
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.08);
+  padding: 24px;
+  margin-bottom: 16px;
+}
+.section-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #34495e;
+  margin-bottom: 14px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Mood Selector */
+.mood-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+}
+.mood-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 14px 8px;
+  border: 2px solid #e8ecf1;
+  border-radius: 14px;
+  background: #fafbfc;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  user-select: none;
+  min-height: 76px;
+}
+.mood-btn:hover { border-color: #b0bec5; background: #f0f4f8; transform: translateY(-1px); }
+.mood-btn:active { transform: scale(0.96); }
+.mood-btn .emoji { font-size: 28px; margin-bottom: 4px; line-height: 1; }
+.mood-btn .label { font-size: 13px; color: #546e7a; font-weight: 500; }
+.mood-btn.selected {
+  border-color: #5c6bc0;
+  background: #e8eaf6;
+  box-shadow: 0 0 0 3px rgba(92,107,192,0.15);
+}
+.mood-btn.selected .label { color: #3949ab; }
+
+/* Diary */
+.diary-area {
+  width: 100%;
+  min-height: 140px;
+  border: 2px solid #e8ecf1;
+  border-radius: 14px;
+  padding: 14px 16px;
+  font-size: 15px;
+  font-family: inherit;
+  color: #2c3e50;
+  resize: vertical;
+  line-height: 1.6;
+  transition: border-color 0.2s;
+}
+.diary-area:focus { outline: none; border-color: #5c6bc0; }
+.diary-area::placeholder { color: #b0bec5; }
+
+.char-count { text-align: right; font-size: 12px; color: #b0bec5; margin-top: 4px; }
+
+.save-btn {
+  width: 100%;
+  padding: 14px;
+  border: none;
+  border-radius: 14px;
+  font-size: 16px;
+  font-weight: 600;
+  color: #fff;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  cursor: pointer;
+  transition: all 0.2s;
+  letter-spacing: 1px;
+  margin-top: 8px;
+}
+.save-btn:hover { opacity: 0.92; transform: translateY(-1px); box-shadow: 0 4px 16px rgba(102,126,234,0.4); }
+.save-btn:active { transform: scale(0.98); }
+.save-btn.saved { background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%); }
+
+.toast {
+  position: fixed;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #2c3e50;
+  color: #fff;
+  padding: 12px 28px;
+  border-radius: 30px;
+  font-size: 14px;
+  font-weight: 500;
+  z-index: 1000;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s, transform 0.3s;
+}
+.toast.show { opacity: 1; transform: translateX(-50%) translateY(4px); }
+
+/* Calendar */
+.calendar-nav { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+.calendar-nav .month-label { font-size: 16px; font-weight: 600; color: #34495e; }
+.nav-btn {
+  width: 36px; height: 36px; border-radius: 50%; border: none;
+  background: #e8ecf1; cursor: pointer; font-size: 18px;
+  display: flex; align-items: center; justify-content: center;
+  color: #546e7a; transition: all 0.15s;
+}
+.nav-btn:hover { background: #d5dbe3; }
+
+.calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+.calendar-header { text-align: center; font-size: 12px; color: #90a4ae; padding: 6px 0; font-weight: 600; }
+.calendar-day {
+  aspect-ratio: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  font-size: 13px;
+  color: #546e7a;
+  cursor: pointer;
+  transition: all 0.15s;
+  position: relative;
+  background: #fafbfc;
+  border: 1px solid transparent;
+}
+.calendar-day:hover { background: #e8eaf6; border-color: #c5cae9; }
+.calendar-day.today { border-color: #5c6bc0; font-weight: 700; color: #3949ab; }
+.calendar-day.empty { cursor: default; background: transparent; border: none; }
+.calendar-day.empty:hover { background: transparent; }
+.calendar-day .day-emoji { font-size: 16px; line-height: 1; margin-bottom: 1px; }
+.calendar-day .day-num { font-size: 11px; }
+
+/* History entry */
+.history-entry {
+  border-bottom: 1px solid #f0f0f0;
+  padding: 12px 0;
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+}
+.history-entry:last-child { border-bottom: none; }
+.history-entry .h-emoji { font-size: 24px; min-width: 36px; text-align: center; }
+.history-entry .h-content { flex: 1; }
+.history-entry .h-date { font-size: 12px; color: #b0bec5; margin-bottom: 2px; }
+.history-entry .h-label { font-size: 14px; font-weight: 600; color: #34495e; margin-bottom: 4px; }
+.history-entry .h-diary { font-size: 14px; color: #546e7a; line-height: 1.5; white-space: pre-wrap; }
+
+.empty-state { text-align: center; padding: 32px 16px; color: #b0bec5; }
+.empty-state .empty-icon { font-size: 48px; margin-bottom: 10px; }
+
+/* Tabs */
+.tab-bar { display: flex; gap: 4px; margin-bottom: 16px; background: #f0f4f8; border-radius: 12px; padding: 4px; }
+.tab-btn {
+  flex: 1; padding: 10px; border: none; border-radius: 10px;
+  font-size: 14px; font-weight: 600; cursor: pointer;
+  background: transparent; color: #78909c; transition: all 0.2s;
+}
+.tab-btn.active { background: #fff; color: #3949ab; box-shadow: 0 1px 4px rgba(0,0,0,0.08); }
+
+/* Stats */
+.stats-row {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+  margin-bottom: 16px;
+}
+.stat-item {
+  text-align: center;
+  background: #fafbfc;
+  border-radius: 12px;
+  padding: 14px 8px;
+  border: 1px solid #e8ecf1;
+}
+.stat-item .stat-emoji { font-size: 22px; }
+.stat-item .stat-count { font-size: 20px; font-weight: 700; color: #34495e; }
+.stat-item .stat-label { font-size: 11px; color: #90a4ae; margin-top: 2px; }
+
+.bar-chart { display: flex; align-items: flex-end; gap: 6px; height: 100px; padding: 0 4px; }
+.bar-col { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.bar { width: 100%; border-radius: 4px 4px 0 0; min-height: 3px; transition: height 0.4s ease; }
+.bar-label { font-size: 10px; color: #90a4ae; }
+
+@media (max-width: 500px) {
+  .mood-grid { grid-template-columns: repeat(4, 1fr); gap: 6px; }
+  .mood-btn { padding: 10px 4px; min-height: 64px; }
+  .mood-btn .emoji { font-size: 22px; }
+  .mood-btn .label { font-size: 11px; }
+  .stats-row { grid-template-columns: repeat(4, 1fr); gap: 6px; }
+}
+
+/* Install banner */
+.install-banner {
+  display: none;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: #fff;
+  border-radius: 14px;
+  padding: 16px 20px;
+  margin-bottom: 16px;
+  align-items: center;
+  gap: 12px;
+  box-shadow: 0 4px 16px rgba(102,126,234,0.3);
+}
+.install-banner.show { display: flex; }
+.install-banner .install-icon { font-size: 32px; flex-shrink: 0; }
+.install-banner .install-text { flex: 1; }
+.install-banner .install-title { font-size: 15px; font-weight: 600; }
+.install-banner .install-desc { font-size: 12px; opacity: 0.85; margin-top: 2px; }
+.install-btn {
+  padding: 8px 18px;
+  border: none;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  background: #fff;
+  color: #667eea;
+  white-space: nowrap;
+  transition: all 0.15s;
+}
+.install-btn:hover { opacity: 0.9; transform: scale(1.03); }
+.dismiss-btn {
+  background: none;
+  border: none;
+  color: rgba(255,255,255,0.7);
+  font-size: 18px;
+  cursor: pointer;
+  padding: 0 4px;
+  line-height: 1;
+}
+</style>
+</head>
+<body>
+
+<div class="container">
+  <div class="header">
+    <h1>🌈 心情日记</h1>
+    <div class="date-display" id="dateDisplay"></div>
+
+  <!-- Install Banner -->
+  <div class="install-banner" id="installBanner">
+    <span class="install-icon">📲</span>
+    <div class="install-text">
+      <div class="install-title">添加到主屏幕</div>
+      <div class="install-desc">像 App 一样使用心情日记</div>
+    </div>
+    <button class="install-btn" id="installBtn">安装</button>
+    <button class="dismiss-btn" id="dismissBtn">✕</button>
+  </div>
+  </div>
+
+  <!-- Install Banner -->
+  <div class="install-banner" id="installBanner">
+    <span class="install-icon">📲</span>
+    <div class="install-text">
+      <div class="install-title">添加到主屏幕</div>
+      <div class="install-desc">像 App 一样使用心情日记</div>
+    </div>
+    <button class="install-btn" id="installBtn">安装</button>
+    <button class="dismiss-btn" id="dismissBtn">✕</button>
+  </div>
+
+  <!-- Tabs -->
+  <div class="tab-bar">
+    <button class="tab-btn active" data-tab="write">✏️ 记录</button>
+    <button class="tab-btn" data-tab="history">📋 历史</button>
+    <button class="tab-btn" data-tab="stats">📊 统计</button>
+  </div>
+
+  <!-- Install Banner -->
+  <div class="install-banner" id="installBanner">
+    <span class="install-icon">📲</span>
+    <div class="install-text">
+      <div class="install-title">添加到主屏幕</div>
+      <div class="install-desc">像 App 一样使用心情日记</div>
+    </div>
+    <button class="install-btn" id="installBtn">安装</button>
+    <button class="dismiss-btn" id="dismissBtn">✕</button>
+  </div>
+
+  <!-- Write Tab -->
+  <div id="tabWrite">
+    <div class="card">
+      <div class="section-title">😊 今天心情如何？</div>
+
+  <!-- Install Banner -->
+  <div class="install-banner" id="installBanner">
+    <span class="install-icon">📲</span>
+    <div class="install-text">
+      <div class="install-title">添加到主屏幕</div>
+      <div class="install-desc">像 App 一样使用心情日记</div>
+    </div>
+    <button class="install-btn" id="installBtn">安装</button>
+    <button class="dismiss-btn" id="dismissBtn">✕</button>
+  </div>
+      <div class="mood-grid" id="moodGrid"></div>
+
+  <!-- Install Banner -->
+  <div class="install-banner" id="installBanner">
+    <span class="install-icon">📲</span>
+    <div class="install-text">
+      <div class="install-title">添加到主屏幕</div>
+      <div class="install-desc">像 App 一样使用心情日记</div>
+    </div>
+    <button class="install-btn" id="installBtn">安装</button>
+    <button class="dismiss-btn" id="dismissBtn">✕</button>
+  </div>
+    </div>
+
+  <!-- Install Banner -->
+  <div class="install-banner" id="installBanner">
+    <span class="install-icon">📲</span>
+    <div class="install-text">
+      <div class="install-title">添加到主屏幕</div>
+      <div class="install-desc">像 App 一样使用心情日记</div>
+    </div>
+    <button class="install-btn" id="installBtn">安装</button>
+    <button class="dismiss-btn" id="dismissBtn">✕</button>
+  </div>
+
+    <div class="card">
+      <div class="section-title">📝 日记（可选）</div>
+
+  <!-- Install Banner -->
+  <div class="install-banner" id="installBanner">
+    <span class="install-icon">📲</span>
+    <div class="install-text">
+      <div class="install-title">添加到主屏幕</div>
+      <div class="install-desc">像 App 一样使用心情日记</div>
+    </div>
+    <button class="install-btn" id="installBtn">安装</button>
+    <button class="dismiss-btn" id="dismissBtn">✕</button>
+  </div>
+      <textarea class="diary-area" id="diaryInput" placeholder="今天发生了什么有趣的事？记录下来吧..." maxlength="2000"></textarea>
+      <div class="char-count"><span id="charCount">0</span> / 2000</div>
+
+  <!-- Install Banner -->
+  <div class="install-banner" id="installBanner">
+    <span class="install-icon">📲</span>
+    <div class="install-text">
+      <div class="install-title">添加到主屏幕</div>
+      <div class="install-desc">像 App 一样使用心情日记</div>
+    </div>
+    <button class="install-btn" id="installBtn">安装</button>
+    <button class="dismiss-btn" id="dismissBtn">✕</button>
+  </div>
+      <button class="save-btn" id="saveBtn">💾 保存记录</button>
+    </div>
+
+  <!-- Install Banner -->
+  <div class="install-banner" id="installBanner">
+    <span class="install-icon">📲</span>
+    <div class="install-text">
+      <div class="install-title">添加到主屏幕</div>
+      <div class="install-desc">像 App 一样使用心情日记</div>
+    </div>
+    <button class="install-btn" id="installBtn">安装</button>
+    <button class="dismiss-btn" id="dismissBtn">✕</button>
+  </div>
+  </div>
+
+  <!-- Install Banner -->
+  <div class="install-banner" id="installBanner">
+    <span class="install-icon">📲</span>
+    <div class="install-text">
+      <div class="install-title">添加到主屏幕</div>
+      <div class="install-desc">像 App 一样使用心情日记</div>
+    </div>
+    <button class="install-btn" id="installBtn">安装</button>
+    <button class="dismiss-btn" id="dismissBtn">✕</button>
+  </div>
+
+  <!-- History Tab -->
+  <div id="tabHistory" style="display:none;">
+    <div class="card">
+      <div class="calendar-nav">
+        <button class="nav-btn" id="prevMonth">◀</button>
+        <span class="month-label" id="monthLabel"></span>
+        <button class="nav-btn" id="nextMonth">▶</button>
+      </div>
+
+  <!-- Install Banner -->
+  <div class="install-banner" id="installBanner">
+    <span class="install-icon">📲</span>
+    <div class="install-text">
+      <div class="install-title">添加到主屏幕</div>
+      <div class="install-desc">像 App 一样使用心情日记</div>
+    </div>
+    <button class="install-btn" id="installBtn">安装</button>
+    <button class="dismiss-btn" id="dismissBtn">✕</button>
+  </div>
+      <div class="calendar-grid" id="calendarGrid"></div>
+
+  <!-- Install Banner -->
+  <div class="install-banner" id="installBanner">
+    <span class="install-icon">📲</span>
+    <div class="install-text">
+      <div class="install-title">添加到主屏幕</div>
+      <div class="install-desc">像 App 一样使用心情日记</div>
+    </div>
+    <button class="install-btn" id="installBtn">安装</button>
+    <button class="dismiss-btn" id="dismissBtn">✕</button>
+  </div>
+    </div>
+
+  <!-- Install Banner -->
+  <div class="install-banner" id="installBanner">
+    <span class="install-icon">📲</span>
+    <div class="install-text">
+      <div class="install-title">添加到主屏幕</div>
+      <div class="install-desc">像 App 一样使用心情日记</div>
+    </div>
+    <button class="install-btn" id="installBtn">安装</button>
+    <button class="dismiss-btn" id="dismissBtn">✕</button>
+  </div>
+    <div class="card" id="dayDetail" style="display:none;">
+      <div class="section-title" id="detailDate"></div>
+
+  <!-- Install Banner -->
+  <div class="install-banner" id="installBanner">
+    <span class="install-icon">📲</span>
+    <div class="install-text">
+      <div class="install-title">添加到主屏幕</div>
+      <div class="install-desc">像 App 一样使用心情日记</div>
+    </div>
+    <button class="install-btn" id="installBtn">安装</button>
+    <button class="dismiss-btn" id="dismissBtn">✕</button>
+  </div>
+      <div id="detailContent"></div>
+
+  <!-- Install Banner -->
+  <div class="install-banner" id="installBanner">
+    <span class="install-icon">📲</span>
+    <div class="install-text">
+      <div class="install-title">添加到主屏幕</div>
+      <div class="install-desc">像 App 一样使用心情日记</div>
+    </div>
+    <button class="install-btn" id="installBtn">安装</button>
+    <button class="dismiss-btn" id="dismissBtn">✕</button>
+  </div>
+    </div>
+
+  <!-- Install Banner -->
+  <div class="install-banner" id="installBanner">
+    <span class="install-icon">📲</span>
+    <div class="install-text">
+      <div class="install-title">添加到主屏幕</div>
+      <div class="install-desc">像 App 一样使用心情日记</div>
+    </div>
+    <button class="install-btn" id="installBtn">安装</button>
+    <button class="dismiss-btn" id="dismissBtn">✕</button>
+  </div>
+  </div>
+
+  <!-- Install Banner -->
+  <div class="install-banner" id="installBanner">
+    <span class="install-icon">📲</span>
+    <div class="install-text">
+      <div class="install-title">添加到主屏幕</div>
+      <div class="install-desc">像 App 一样使用心情日记</div>
+    </div>
+    <button class="install-btn" id="installBtn">安装</button>
+    <button class="dismiss-btn" id="dismissBtn">✕</button>
+  </div>
+
+  <!-- Stats Tab -->
+  <div id="tabStats" style="display:none;">
+    <div class="card">
+      <div class="section-title">📊 心情统计（本月）</div>
+
+  <!-- Install Banner -->
+  <div class="install-banner" id="installBanner">
+    <span class="install-icon">📲</span>
+    <div class="install-text">
+      <div class="install-title">添加到主屏幕</div>
+      <div class="install-desc">像 App 一样使用心情日记</div>
+    </div>
+    <button class="install-btn" id="installBtn">安装</button>
+    <button class="dismiss-btn" id="dismissBtn">✕</button>
+  </div>
+      <div class="stats-row" id="statsRow"></div>
+
+  <!-- Install Banner -->
+  <div class="install-banner" id="installBanner">
+    <span class="install-icon">📲</span>
+    <div class="install-text">
+      <div class="install-title">添加到主屏幕</div>
+      <div class="install-desc">像 App 一样使用心情日记</div>
+    </div>
+    <button class="install-btn" id="installBtn">安装</button>
+    <button class="dismiss-btn" id="dismissBtn">✕</button>
+  </div>
+      <div class="bar-chart" id="barChart"></div>
+
+  <!-- Install Banner -->
+  <div class="install-banner" id="installBanner">
+    <span class="install-icon">📲</span>
+    <div class="install-text">
+      <div class="install-title">添加到主屏幕</div>
+      <div class="install-desc">像 App 一样使用心情日记</div>
+    </div>
+    <button class="install-btn" id="installBtn">安装</button>
+    <button class="dismiss-btn" id="dismissBtn">✕</button>
+  </div>
+    </div>
+
+  <!-- Install Banner -->
+  <div class="install-banner" id="installBanner">
+    <span class="install-icon">📲</span>
+    <div class="install-text">
+      <div class="install-title">添加到主屏幕</div>
+      <div class="install-desc">像 App 一样使用心情日记</div>
+    </div>
+    <button class="install-btn" id="installBtn">安装</button>
+    <button class="dismiss-btn" id="dismissBtn">✕</button>
+  </div>
+  </div>
+
+  <!-- Install Banner -->
+  <div class="install-banner" id="installBanner">
+    <span class="install-icon">📲</span>
+    <div class="install-text">
+      <div class="install-title">添加到主屏幕</div>
+      <div class="install-desc">像 App 一样使用心情日记</div>
+    </div>
+    <button class="install-btn" id="installBtn">安装</button>
+    <button class="dismiss-btn" id="dismissBtn">✕</button>
+  </div>
+</div>
+
+  <!-- Install Banner -->
+  <div class="install-banner" id="installBanner">
+    <span class="install-icon">📲</span>
+    <div class="install-text">
+      <div class="install-title">添加到主屏幕</div>
+      <div class="install-desc">像 App 一样使用心情日记</div>
+    </div>
+    <button class="install-btn" id="installBtn">安装</button>
+    <button class="dismiss-btn" id="dismissBtn">✕</button>
+  </div>
+
+<div class="toast" id="toast"></div>
+
+  <!-- Install Banner -->
+  <div class="install-banner" id="installBanner">
+    <span class="install-icon">📲</span>
+    <div class="install-text">
+      <div class="install-title">添加到主屏幕</div>
+      <div class="install-desc">像 App 一样使用心情日记</div>
+    </div>
+    <button class="install-btn" id="installBtn">安装</button>
+    <button class="dismiss-btn" id="dismissBtn">✕</button>
+  </div>
+
+<script>
+// ---- Data ----
+const MOODS = [
+  { id: "happy",     emoji: "😊", label: "开心",   color: "#FFD93D" },
+  { id: "excited",   emoji: "🤩", label: "兴奋",   color: "#FF6B6B" },
+  { id: "calm",      emoji: "😌", label: "平静",   color: "#A8E6CF" },
+  { id: "grateful",  emoji: "🥰", label: "感恩",   color: "#FFAAA5" },
+  { id: "anxious",   emoji: "😰", label: "焦虑",   color: "#C9CBFF" },
+  { id: "sad",       emoji: "😢", label: "难过",   color: "#89CFF0" },
+  { id: "angry",     emoji: "😠", label: "生气",   color: "#FF8C69" },
+  { id: "tired",     emoji: "😫", label: "疲惫",   color: "#D4A5A5" },
+];
+
+const STORAGE_KEY = "mood_diary_entries";
+const WEEKDAYS = ["日", "一", "二", "三", "四", "五", "六"];
+
+function loadEntries() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    return raw ? JSON.parse(raw) : {};
+  } catch { return {}; }
+}
+function saveEntries(entries) {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(entries));
+  // Dispatch an event so all tabs stay in sync
+  window.dispatchEvent(new CustomEvent("entries-updated", { detail: entries }));
+}
+
+function getDateStr(date) {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, "0");
+  const d = String(date.getDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
+}
+
+function getMoodById(id) { return MOODS.find(m => m.id === id) || null; }
+
+function formatDateCN(dateStr) {
+  const [y, m, d] = dateStr.split("-");
+  return `${y}年${parseInt(m)}月${parseInt(d)}日`;
+}
+
+// ---- UI State ----
+let entries = loadEntries();
+let todayStr = getDateStr(new Date());
+let calendarYear, calendarMonth;
+
+// ---- Elements ----
+const $dateDisplay = document.getElementById("dateDisplay");
+const $moodGrid = document.getElementById("moodGrid");
+const $diaryInput = document.getElementById("diaryInput");
+const $charCount = document.getElementById("charCount");
+const $saveBtn = document.getElementById("saveBtn");
+const $toast = document.getElementById("toast");
+const $tabBtns = document.querySelectorAll(".tab-btn");
+const $tabWrite = document.getElementById("tabWrite");
+const $tabHistory = document.getElementById("tabHistory");
+const $tabStats = document.getElementById("tabStats");
+const $monthLabel = document.getElementById("monthLabel");
+const $calendarGrid = document.getElementById("calendarGrid");
+const $dayDetail = document.getElementById("dayDetail");
+const $detailDate = document.getElementById("detailDate");
+const $detailContent = document.getElementById("detailContent");
+const $statsRow = document.getElementById("statsRow");
+const $barChart = document.getElementById("barChart");
+
+// ---- Toast ----
+let toastTimer;
+function showToast(msg) {
+  clearTimeout(toastTimer);
+  $toast.textContent = msg;
+  $toast.classList.add("show");
+  toastTimer = setTimeout(() => $toast.classList.remove("show"), 2000);
+}
+
+// ---- Date display ----
+function updateDateDisplay() {
+  const d = new Date();
+  const weekDay = WEEKDAYS[d.getDay()];
+  $dateDisplay.textContent = `${d.getFullYear()}年${d.getMonth()+1}月${d.getDate()}日 星期${weekDay}`;
+}
+
+// ---- Mood grid ----
+function buildMoodGrid() {
+  $moodGrid.innerHTML = "";
+  const entry = entries[todayStr] || null;
+  const selectedMoodId = entry ? entry.mood : null;
+
+  MOODS.forEach(mood => {
+    const btn = document.createElement("button");
+    btn.className = "mood-btn" + (mood.id === selectedMoodId ? " selected" : "");
+    btn.innerHTML = `<span class="emoji">${mood.emoji}</span><span class="label">${mood.label}</span>`;
+    btn.addEventListener("click", () => selectMood(mood.id));
+    $moodGrid.appendChild(btn);
+  });
+}
+
+let selectedMoodId = null;
+function selectMood(moodId) {
+  selectedMoodId = moodId;
+  document.querySelectorAll(".mood-btn").forEach((btn, i) => {
+    btn.classList.toggle("selected", MOODS[i].id === moodId);
+  });
+}
+
+// ---- Load today''s entry ----
+function loadTodayEntry() {
+  const entry = entries[todayStr];
+  selectedMoodId = entry ? entry.mood : null;
+  $diaryInput.value = entry ? (entry.diary || "") : "";
+  $charCount.textContent = ($diaryInput.value || "").length;
+  buildMoodGrid();
+}
+
+// ---- Save ----
+$saveBtn.addEventListener("click", () => {
+  if (!selectedMoodId) {
+    showToast("请先选择一个心情哦 😊");
+    return;
+  }
+  entries = loadEntries(); // re-read in case another tab changed
+  entries[todayStr] = {
+    mood: selectedMoodId,
+    diary: $diaryInput.value.trim(),
+    savedAt: new Date().toISOString()
+  };
+  saveEntries(entries);
+  $saveBtn.textContent = "✅ 已保存";
+  $saveBtn.classList.add("saved");
+  setTimeout(() => {
+    $saveBtn.textContent = "💾 保存记录";
+    $saveBtn.classList.remove("saved");
+  }, 1800);
+  showToast("记录已保存！🌸");
+});
+
+// ---- Char count ----
+$diaryInput.addEventListener("input", () => {
+  $charCount.textContent = $diaryInput.value.length;
+});
+
+// ---- Tabs ----
+$tabBtns.forEach(btn => {
+  btn.addEventListener("click", () => {
+    $tabBtns.forEach(b => b.classList.remove("active"));
+    btn.classList.add("active");
+    const tab = btn.dataset.tab;
+    $tabWrite.style.display = tab === "write" ? "" : "none";
+    $tabHistory.style.display = tab === "history" ? "" : "none";
+    $tabStats.style.display = tab === "stats" ? "" : "none";
+
+    if (tab === "history") {
+      const now = new Date();
+      calendarYear = now.getFullYear();
+      calendarMonth = now.getMonth() + 1;
+      renderCalendar();
+    }
+    if (tab === "stats") renderStats();
+    if (tab === "write") {
+      todayStr = getDateStr(new Date());
+      loadTodayEntry();
+      updateDateDisplay();
+    }
+  });
+});
+
+// ---- Calendar ----
+function renderCalendar() {
+  $monthLabel.textContent = `${calendarYear}年 ${calendarMonth}月`;
+
+  let html = WEEKDAYS.map(d => `<div class="calendar-header">${d}</div>
+
+  <!-- Install Banner -->
+  <div class="install-banner" id="installBanner">
+    <span class="install-icon">📲</span>
+    <div class="install-text">
+      <div class="install-title">添加到主屏幕</div>
+      <div class="install-desc">像 App 一样使用心情日记</div>
+    </div>
+    <button class="install-btn" id="installBtn">安装</button>
+    <button class="dismiss-btn" id="dismissBtn">✕</button>
+  </div>`).join("");
+
+  const firstDay = new Date(calendarYear, calendarMonth - 1, 1);
+  const startDayOfWeek = firstDay.getDay();
+  const daysInMonth = new Date(calendarYear, calendarMonth, 0).getDate();
+
+  // Empty cells before first day
+  for (let i = 0; i < startDayOfWeek; i++) {
+    html += `<div class="calendar-day empty"></div>
+
+  <!-- Install Banner -->
+  <div class="install-banner" id="installBanner">
+    <span class="install-icon">📲</span>
+    <div class="install-text">
+      <div class="install-title">添加到主屏幕</div>
+      <div class="install-desc">像 App 一样使用心情日记</div>
+    </div>
+    <button class="install-btn" id="installBtn">安装</button>
+    <button class="dismiss-btn" id="dismissBtn">✕</button>
+  </div>`;
+  }
+
+  for (let day = 1; day <= daysInMonth; day++) {
+    const dateStr = `${calendarYear}-${String(calendarMonth).padStart(2,"0")}-${String(day).padStart(2,"0")}`;
+    const entry = entries[dateStr];
+    const isToday = dateStr === getDateStr(new Date());
+    const emoji = entry ? getMoodById(entry.mood)?.emoji || "" : "";
+
+    html += `<div class="calendar-day${isToday ? " today" : ""}" data-date="${dateStr}">`;
+    if (emoji) html += `<span class="day-emoji">${emoji}</span>`;
+    html += `<span class="day-num">${day}</span>`;
+    html += `</div>
+
+  <!-- Install Banner -->
+  <div class="install-banner" id="installBanner">
+    <span class="install-icon">📲</span>
+    <div class="install-text">
+      <div class="install-title">添加到主屏幕</div>
+      <div class="install-desc">像 App 一样使用心情日记</div>
+    </div>
+    <button class="install-btn" id="installBtn">安装</button>
+    <button class="dismiss-btn" id="dismissBtn">✕</button>
+  </div>`;
+  }
+
+  $calendarGrid.innerHTML = html;
+
+  // Click handlers
+  $calendarGrid.querySelectorAll(".calendar-day:not(.empty)").forEach(cell => {
+    cell.addEventListener("click", () => showDayDetail(cell.dataset.date));
+  });
+}
+
+document.getElementById("prevMonth").addEventListener("click", () => {
+  if (calendarMonth === 1) { calendarYear--; calendarMonth = 12; }
+  else calendarMonth--;
+  renderCalendar();
+});
+document.getElementById("nextMonth").addEventListener("click", () => {
+  if (calendarMonth === 12) { calendarYear++; calendarMonth = 1; }
+  else calendarMonth++;
+  renderCalendar();
+});
+
+// ---- Day Detail ----
+function showDayDetail(dateStr) {
+  const entry = entries[dateStr];
+  $dayDetail.style.display = "";
+  $detailDate.textContent = formatDateCN(dateStr);
+
+  if (!entry) {
+    $detailContent.innerHTML = `<div class="empty-state"><div class="empty-icon">📭</div>
+
+  <!-- Install Banner -->
+  <div class="install-banner" id="installBanner">
+    <span class="install-icon">📲</span>
+    <div class="install-text">
+      <div class="install-title">添加到主屏幕</div>
+      <div class="install-desc">像 App 一样使用心情日记</div>
+    </div>
+    <button class="install-btn" id="installBtn">安装</button>
+    <button class="dismiss-btn" id="dismissBtn">✕</button>
+  </div><p>这天还没有记录</p></div>
+
+  <!-- Install Banner -->
+  <div class="install-banner" id="installBanner">
+    <span class="install-icon">📲</span>
+    <div class="install-text">
+      <div class="install-title">添加到主屏幕</div>
+      <div class="install-desc">像 App 一样使用心情日记</div>
+    </div>
+    <button class="install-btn" id="installBtn">安装</button>
+    <button class="dismiss-btn" id="dismissBtn">✕</button>
+  </div>`;
+    return;
+  }
+
+  const mood = getMoodById(entry.mood);
+  let html = `<div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;">`;
+  html += `<span style="font-size:32px;">${mood ? mood.emoji : "❓"}</span>`;
+  html += `<span style="font-size:16px;font-weight:600;color:#34495e;">${mood ? mood.label : "未知"}</span>`;
+  html += `</div>
+
+  <!-- Install Banner -->
+  <div class="install-banner" id="installBanner">
+    <span class="install-icon">📲</span>
+    <div class="install-text">
+      <div class="install-title">添加到主屏幕</div>
+      <div class="install-desc">像 App 一样使用心情日记</div>
+    </div>
+    <button class="install-btn" id="installBtn">安装</button>
+    <button class="dismiss-btn" id="dismissBtn">✕</button>
+  </div>`;
+  if (entry.diary) {
+    html += `<div style="background:#f8f9fa;border-radius:10px;padding:14px;font-size:14px;color:#546e7a;line-height:1.6;white-space:pre-wrap;">${entry.diary}</div>
+
+  <!-- Install Banner -->
+  <div class="install-banner" id="installBanner">
+    <span class="install-icon">📲</span>
+    <div class="install-text">
+      <div class="install-title">添加到主屏幕</div>
+      <div class="install-desc">像 App 一样使用心情日记</div>
+    </div>
+    <button class="install-btn" id="installBtn">安装</button>
+    <button class="dismiss-btn" id="dismissBtn">✕</button>
+  </div>`;
+  } else {
+    html += `<p style="color:#b0bec5;font-size:13px;">未写日记</p>`;
+  }
+  $detailContent.innerHTML = html;
+}
+
+// ---- Stats ----
+function renderStats() {
+  entries = loadEntries();
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = now.getMonth() + 1;
+  const prefix = `${year}-${String(month).padStart(2,"0")}-`;
+
+  const monthEntries = Object.entries(entries).filter(([k]) => k.startsWith(prefix));
+
+  // Count per mood
+  const counts = {};
+  MOODS.forEach(m => { counts[m.id] = 0; });
+  monthEntries.forEach(([, v]) => { if (counts[v.mood] !== undefined) counts[v.mood]++; });
+
+  const total = monthEntries.length;
+
+  // Stats row - show top 4 moods
+  const sorted = MOODS.map(m => ({ ...m, count: counts[m.id] })).sort((a, b) => b.count - a.count);
+  $statsRow.innerHTML = sorted.slice(0, 4).map(m => `
+    <div class="stat-item">
+      <div class="stat-emoji">${m.emoji}</div>
+
+  <!-- Install Banner -->
+  <div class="install-banner" id="installBanner">
+    <span class="install-icon">📲</span>
+    <div class="install-text">
+      <div class="install-title">添加到主屏幕</div>
+      <div class="install-desc">像 App 一样使用心情日记</div>
+    </div>
+    <button class="install-btn" id="installBtn">安装</button>
+    <button class="dismiss-btn" id="dismissBtn">✕</button>
+  </div>
+      <div class="stat-count">${m.count}</div>
+
+  <!-- Install Banner -->
+  <div class="install-banner" id="installBanner">
+    <span class="install-icon">📲</span>
+    <div class="install-text">
+      <div class="install-title">添加到主屏幕</div>
+      <div class="install-desc">像 App 一样使用心情日记</div>
+    </div>
+    <button class="install-btn" id="installBtn">安装</button>
+    <button class="dismiss-btn" id="dismissBtn">✕</button>
+  </div>
+      <div class="stat-label">${m.label}</div>
+
+  <!-- Install Banner -->
+  <div class="install-banner" id="installBanner">
+    <span class="install-icon">📲</span>
+    <div class="install-text">
+      <div class="install-title">添加到主屏幕</div>
+      <div class="install-desc">像 App 一样使用心情日记</div>
+    </div>
+    <button class="install-btn" id="installBtn">安装</button>
+    <button class="dismiss-btn" id="dismissBtn">✕</button>
+  </div>
+    </div>
+
+  <!-- Install Banner -->
+  <div class="install-banner" id="installBanner">
+    <span class="install-icon">📲</span>
+    <div class="install-text">
+      <div class="install-title">添加到主屏幕</div>
+      <div class="install-desc">像 App 一样使用心情日记</div>
+    </div>
+    <button class="install-btn" id="installBtn">安装</button>
+    <button class="dismiss-btn" id="dismissBtn">✕</button>
+  </div>
+  `).join("");
+
+  // Bar chart
+  const maxCount = Math.max(...Object.values(counts), 1);
+  $barChart.innerHTML = MOODS.map(m => {
+    const h = (counts[m.id] / maxCount) * 100;
+    return `<div class="bar-col">
+      <span style="font-size:12px;">${counts[m.id]}</span>
+      <div class="bar" style="height:${Math.max(h, 3)}%; background:${m.color};"></div>
+
+  <!-- Install Banner -->
+  <div class="install-banner" id="installBanner">
+    <span class="install-icon">📲</span>
+    <div class="install-text">
+      <div class="install-title">添加到主屏幕</div>
+      <div class="install-desc">像 App 一样使用心情日记</div>
+    </div>
+    <button class="install-btn" id="installBtn">安装</button>
+    <button class="dismiss-btn" id="dismissBtn">✕</button>
+  </div>
+      <span class="bar-label">${m.emoji}</span>
+    </div>
+
+  <!-- Install Banner -->
+  <div class="install-banner" id="installBanner">
+    <span class="install-icon">📲</span>
+    <div class="install-text">
+      <div class="install-title">添加到主屏幕</div>
+      <div class="install-desc">像 App 一样使用心情日记</div>
+    </div>
+    <button class="install-btn" id="installBtn">安装</button>
+    <button class="dismiss-btn" id="dismissBtn">✕</button>
+  </div>`;
+  }).join("");
+
+  if (total === 0) {
+    $statsRow.insertAdjacentHTML("afterend", `<div class="empty-state" style="margin-top:16px;"><div class="empty-icon">📊</div>
+
+  <!-- Install Banner -->
+  <div class="install-banner" id="installBanner">
+    <span class="install-icon">📲</span>
+    <div class="install-text">
+      <div class="install-title">添加到主屏幕</div>
+      <div class="install-desc">像 App 一样使用心情日记</div>
+    </div>
+    <button class="install-btn" id="installBtn">安装</button>
+    <button class="dismiss-btn" id="dismissBtn">✕</button>
+  </div><p>本月暂无记录</p></div>
+
+  <!-- Install Banner -->
+  <div class="install-banner" id="installBanner">
+    <span class="install-icon">📲</span>
+    <div class="install-text">
+      <div class="install-title">添加到主屏幕</div>
+      <div class="install-desc">像 App 一样使用心情日记</div>
+    </div>
+    <button class="install-btn" id="installBtn">安装</button>
+    <button class="dismiss-btn" id="dismissBtn">✕</button>
+  </div>`);
+  }
+}
+
+// ---- Listen for cross-tab updates ----
+window.addEventListener("entries-updated", (e) => {
+  entries = e.detail;
+  // Refresh current view if visible
+  if ($tabWrite.style.display !== "none") {
+    loadTodayEntry();
+  }
+  if ($tabHistory.style.display !== "none") {
+    renderCalendar();
+  }
+  if ($tabStats.style.display !== "none") {
+    renderStats();
+  }
+});
+window.addEventListener("storage", () => {
+  entries = loadEntries();
+  if ($tabWrite.style.display !== "none") loadTodayEntry();
+  if ($tabHistory.style.display !== "none") renderCalendar();
+  if ($tabStats.style.display !== "none") renderStats();
+});
+
+// ---- Init ----
+function init() {
+  updateDateDisplay();
+  loadTodayEntry();
+
+  // Initialize calendar to current month
+  const now = new Date();
+  calendarYear = now.getFullYear();
+  calendarMonth = now.getMonth() + 1;
+}
+init();
+
+// ---- PWA Install ----
+let deferredPrompt;
+const $installBanner = document.getElementById("installBanner");
+const $installBtn = document.getElementById("installBtn");
+const $dismissBtn = document.getElementById("dismissBtn");
+
+window.addEventListener("beforeinstallprompt", (e) => {
+  e.preventDefault();
+  deferredPrompt = e;
+  // 检查是否在独立模式下（已安装）
+  if (window.matchMedia("(display-mode: standalone)").matches) return;
+  // 检查之前是否被关闭过
+  const dismissed = localStorage.getItem("pwa_banner_dismissed");
+  if (dismissed) return;
+  $installBanner.classList.add("show");
+});
+
+$installBtn.addEventListener("click", async () => {
+  if (!deferredPrompt) return;
+  deferredPrompt.prompt();
+  const { outcome } = await deferredPrompt.userChoice;
+  deferredPrompt = null;
+  $installBanner.classList.remove("show");
+  if (outcome === "accepted") {
+    showToast("安装成功！🎉");
+  }
+});
+
+$dismissBtn.addEventListener("click", () => {
+  $installBanner.classList.remove("show");
+  localStorage.setItem("pwa_banner_dismissed", "1");
+});
+
+// 如果已在独立模式下运行，隐藏安装提示
+if (window.matchMedia("(display-mode: standalone)").matches) {
+  $installBanner.style.display = "none";
+}
+
+// ---- Service Worker 注册 ----
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("sw.js").then((reg) => {
+      console.log("SW registered:", reg.scope);
+    }).catch((err) => {
+      console.log("SW registration failed:", err);
+    });
+  });
+}
+</script>
+</body>
+</html>
